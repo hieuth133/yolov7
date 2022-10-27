@@ -441,7 +441,10 @@ class Model(nn.Module):
     def fuse(self):  # fuse model Conv2d() + BatchNorm2d() layers
         logger.info('Fusing layers... ')
         for m in self.model.modules():
-            if type(m) is Conv and hasattr(m, 'bn'):
+            if isinstance(m, RepConv):
+                #print(f" fuse_repvgg_block")
+                m.fuse_repvgg_block()
+            elif type(m) is Conv and hasattr(m, 'bn'):
                 m.conv = fuse_conv_and_bn(m.conv, m.bn)  # update conv
                 delattr(m, 'bn')  # remove batchnorm
                 m.forward = m.fuseforward  # update forward
@@ -490,7 +493,7 @@ def parse_model(d, ch):  # model_dict, input_channels(3)
 
         n = max(round(n * gd), 1) if n > 1 else n  # depth gain
         if m in [Conv, GhostConv, Bottleneck, GhostBottleneck, SPP, DWConv, MixConv2d, Focus, ConvFocus, CrossConv, BottleneckCSP,
-                 C3, C3TR, BottleneckCSPF, BottleneckCSP2, SPPCSP, SPPCSPC]:
+                 C3, C3TR, BottleneckCSPF, BottleneckCSP2, SPPCSP, SPPCSPC, RepConv]:
             c1, c2 = ch[f], args[0]
             if c2 != no:  # if not output
                 c2 = make_divisible(c2 * gw, 8)

@@ -73,11 +73,10 @@ def test(data,
     half = device.type != 'cpu' and half_precision  # half precision only supported on CUDA
     if half:
         model.half()
-
+    nkpt = model.model[-1].nkpt
     # Configure
     model.eval()
     model.model[-1].flip_test = False
-    model.model[-1].flip_index = [0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 12, 11, 14, 13, 16, 15]
     if isinstance(data, str):
         is_coco = data.endswith('coco.yaml') or data.endswith('coco_kpts.yaml')
         with open(data) as f:
@@ -97,7 +96,8 @@ def test(data,
             model(torch.zeros(1, 3, imgsz, imgsz).to(device).type_as(next(model.parameters())))  # run once
         task = opt.task if opt.task in ('train', 'val', 'test') else 'val'  # path to train/val/test images
         dataloader = create_dataloader(data[task], imgsz, batch_size, gs, opt, pad=0.5, rect=True,
-                                       prefix=colorstr(f'{task}: '), tidl_load=tidl_load, kpt_label=kpt_label)[0]
+                                       prefix=colorstr(f'{task}: '), tidl_load=tidl_load, kpt_label=kpt_label,
+                                       nkpt=nkpt, flip_index=model.model[-1].flip_index)[0]
 
     seen = 0
     confusion_matrix = ConfusionMatrix(nc=nc)
