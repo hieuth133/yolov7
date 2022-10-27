@@ -40,8 +40,8 @@ logger = logging.getLogger(__name__)
 
 def train(hyp, opt, device, tb_writer=None):
     logger.info(colorstr('hyperparameters: ') + ', '.join(f'{k}={v}' for k, v in hyp.items()))
-    save_dir, epochs, batch_size, total_batch_size, weights, rank, kpt_label = \
-        Path(opt.save_dir), opt.epochs, opt.batch_size, opt.total_batch_size, opt.weights, opt.global_rank, opt.kpt_label
+    save_dir, epochs, batch_size, total_batch_size, weights, rank, kpt_label, kpts_color = \
+        Path(opt.save_dir), opt.epochs, opt.batch_size, opt.total_batch_size, opt.weights, opt.global_rank, opt.kpt_label, opt.kpts_color
 
     # Directories
     wdir = save_dir / 'weights'
@@ -98,9 +98,13 @@ def train(hyp, opt, device, tb_writer=None):
     train_path = data_dict['train']
     test_path = data_dict['val']
     
+    # add nkpt and flip index
     nkpt = model.model[-1].nkpt
     model.model[-1].flip_index = hyp['flip_index']
 
+    # add kpts color
+    with open(kpts_color) as f:
+        kpts_color_dict = yaml.safe_load(f)
     # Freeze
     freeze = []  # parameter names to freeze (full or partial)
     for k, v in model.named_parameters():
@@ -347,7 +351,7 @@ def train(hyp, opt, device, tb_writer=None):
                 # Plot
                 if plots and ni < 33:
                     f = save_dir / f'train_batch{ni}.jpg'  # filename
-                    plot_images(imgs, targets, paths, f, kpt_label=kpt_label)
+                    plot_images(imgs, targets, paths, f, kpt_label=kpt_label, kpts_color_dict=kpts_color_dict)
                     #Thread(target=plot_images, args=(imgs, targets, paths, f), daemon=True).start()
                     # if tb_writer:
                     #     tb_writer.add_image(f, result, dataformats='HWC', global_step=epoch)
@@ -479,6 +483,7 @@ if __name__ == '__main__':
     parser.add_argument('--weights', type=str, default='', help='initial weights path')
     parser.add_argument('--cfg', type=str, default='cfg/yolov7-plate.yaml', help='model.yaml path')
     parser.add_argument('--data', type=str, default='data/plate_kpts.yaml', help='data.yaml path')
+    parser.add_argument('--kpts-color', type=str, default='data/plate_kpts_colors.yaml', help='data.yaml path')
     parser.add_argument('--hyp', type=str, default='data/hyp.pose.yaml', help='hyperparameters path')
     parser.add_argument('--epochs', type=int, default=10)
     parser.add_argument('--batch-size', type=int, default=2, help='total batch size for all GPUs')
@@ -510,7 +515,7 @@ if __name__ == '__main__':
     parser.add_argument('--bbox_interval', type=int, default=-1, help='Set bounding-box image logging interval for W&B')
     parser.add_argument('--save_period', type=int, default=-1, help='Log model after every "save_period" epoch')
     parser.add_argument('--artifact_alias', type=str, default="latest", help='version of dataset artifact to be used')
-    parser.add_argument('--kpt-label', action='store_true', help='use keypoint labels for training')
+    parser.add_argument('--kpt-label', action='store_false', help='use keypoint labels for training, default = True')
     opt = parser.parse_args()
 
     # Set DDP variables

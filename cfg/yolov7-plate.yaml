@@ -4,7 +4,7 @@ nkpt: 4 # number of keypoints
 depth_multiple: 1.0  # model depth multiple
 width_multiple: 1.0  # layer channel multiple
 dw_conv_kpt: True
-
+sigmas: [1., 1., 1., 1.]
 # anchors
 anchors:
   - [12,16, 19,36, 40,28]  # P3/8
